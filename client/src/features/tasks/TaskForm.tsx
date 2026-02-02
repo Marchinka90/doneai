@@ -14,6 +14,7 @@ import {
   TextField,
 } from '@mui/material';
 import { CreateTaskDto, Task, TaskStatus, UpdateTaskDto } from '../../types';
+import { parseDateInputToUtcSeconds, utcSecondsToDateInputValue } from '../../utils/dates';
 
 interface TaskFormProps {
   open: boolean;
@@ -26,6 +27,8 @@ interface TaskFormProps {
 
 const MAX_TITLE = 200;
 const MAX_DESCRIPTION = 2000;
+const MIN_PRIORITY = 1;
+const MAX_PRIORITY = 9;
 
 const TaskForm = ({ open, task, isLoading = false, errorMessage, onClose, onSubmit }: TaskFormProps) => {
   const isEdit = Boolean(task);
@@ -33,21 +36,31 @@ const TaskForm = ({ open, task, isLoading = false, errorMessage, onClose, onSubm
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<TaskStatus>('todo');
+  const [priorityText, setPriorityText] = useState('');
+  const [dueDateText, setDueDateText] = useState('');
   const [titleError, setTitleError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [priorityError, setPriorityError] = useState<string | null>(null);
+  const [dueDateError, setDueDateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setTitle(task?.title ?? '');
     setDescription(task?.description ?? '');
     setStatus(task?.status ?? 'todo');
+    setPriorityText(task?.priority !== undefined ? String(task.priority) : '');
+    setDueDateText(utcSecondsToDateInputValue(task?.dueDate));
     setTitleError(null);
     setDescriptionError(null);
+    setPriorityError(null);
+    setDueDateError(null);
   }, [open, task]);
 
   const validate = () => {
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
+    const trimmedPriority = priorityText.trim();
+    const trimmedDueDate = dueDateText.trim();
 
     let ok = true;
     if (!trimmedTitle) {
@@ -67,21 +80,55 @@ const TaskForm = ({ open, task, isLoading = false, errorMessage, onClose, onSubm
       setDescriptionError(null);
     }
 
+    if (!trimmedPriority) {
+      setPriorityError(null);
+    } else {
+      const parsed = Number(trimmedPriority);
+      if (!Number.isInteger(parsed)) {
+        setPriorityError('Priority must be an integer');
+        ok = false;
+      } else if (parsed < MIN_PRIORITY || parsed > MAX_PRIORITY) {
+        setPriorityError(`Priority must be between ${MIN_PRIORITY} and ${MAX_PRIORITY}`);
+        ok = false;
+      } else {
+        setPriorityError(null);
+      }
+    }
+
+    if (!trimmedDueDate) {
+      setDueDateError(null);
+    } else {
+      const seconds = parseDateInputToUtcSeconds(trimmedDueDate);
+      if (seconds === null) {
+        setDueDateError('Due date must be a valid date');
+        ok = false;
+      } else {
+        setDueDateError(null);
+      }
+    }
+
     return ok;
   };
 
   const payload = useMemo<CreateTaskDto | UpdateTaskDto>(() => {
     const trimmedTitle = title.trim();
     const trimmedDescription = description.trim();
+    const trimmedPriority = priorityText.trim();
+    const trimmedDueDate = dueDateText.trim();
 
     // Keep payload clean: omit empty description.
     const descriptionValue = trimmedDescription ? trimmedDescription : undefined;
+
+    const priorityValue = trimmedPriority ? Number(trimmedPriority) : null;
+    const dueDateValue = trimmedDueDate ? parseDateInputToUtcSeconds(trimmedDueDate) : null;
 
     if (!isEdit) {
       return {
         title: trimmedTitle,
         description: descriptionValue,
         status,
+        priority: Number.isFinite(priorityValue as number) ? (priorityValue as number) : null,
+        dueDate: dueDateValue,
       };
     }
 
@@ -89,8 +136,10 @@ const TaskForm = ({ open, task, isLoading = false, errorMessage, onClose, onSubm
       title: trimmedTitle,
       description: descriptionValue,
       status,
+      priority: Number.isFinite(priorityValue as number) ? (priorityValue as number) : null,
+      dueDate: dueDateValue,
     };
-  }, [description, isEdit, status, title]);
+  }, [description, dueDateText, isEdit, priorityText, status, title]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,6 +182,34 @@ const TaskForm = ({ open, task, isLoading = false, errorMessage, onClose, onSubm
               rows={4}
               error={Boolean(descriptionError)}
               helperText={descriptionError ?? `${description.length}/${MAX_DESCRIPTION}`}
+            />
+
+            <TextField
+              label="Priority"
+              value={priorityText}
+              onChange={(e) => {
+                setPriorityText(e.target.value);
+                if (priorityError) setPriorityError(null);
+              }}
+              fullWidth
+              type="number"
+              error={Boolean(priorityError)}
+              helperText={priorityError ?? `Optional. ${MIN_PRIORITY}–${MAX_PRIORITY}`}
+              inputProps={{ min: MIN_PRIORITY, max: MAX_PRIORITY, step: 1 }}
+            />
+
+            <TextField
+              label="Due date"
+              value={dueDateText}
+              onChange={(e) => {
+                setDueDateText(e.target.value);
+                if (dueDateError) setDueDateError(null);
+              }}
+              fullWidth
+              type="date"
+              InputLabelProps={{ shrink: true }}
+              error={Boolean(dueDateError)}
+              helperText={dueDateError ?? 'Optional. Stored in UTC; shown in your locale.'}
             />
 
             <FormControl fullWidth>

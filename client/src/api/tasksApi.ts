@@ -1,6 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { Task, CreateTaskDto, UpdateTaskDto } from '../types';
 
+const nowSeconds = () => Math.floor(Date.now() / 1000);
+
 export const tasksApi = createApi({
   reducerPath: 'tasksApi',
   baseQuery: fetchBaseQuery({ baseUrl: '/api' }),
@@ -35,6 +37,7 @@ export const tasksApi = createApi({
         // Optimistically add a temporary task to the list.
         // If the request fails, undo. If it succeeds, replace temp with server task.
         const tempId = `temp-${Date.now()}`;
+        const optimisticNow = nowSeconds();
         const patchResult = dispatch(
           tasksApi.util.updateQueryData('getTasks', undefined, (draft) => {
             draft.unshift({
@@ -42,8 +45,10 @@ export const tasksApi = createApi({
               title: newTask.title,
               description: newTask.description ?? '',
               status: newTask.status ?? 'todo',
-              createdAt: new Date().toISOString(),
-              updatedAt: new Date().toISOString(),
+              priority: newTask.priority ?? undefined,
+              dueDate: newTask.dueDate ?? undefined,
+              createdAt: optimisticNow,
+              updatedAt: optimisticNow,
             });
           })
         );
@@ -78,7 +83,9 @@ export const tasksApi = createApi({
             const existing = draft.find((t) => t.id === id);
             if (existing) {
               Object.assign(existing, updates);
-              existing.updatedAt = new Date().toISOString();
+              if ('dueDate' in updates && updates.dueDate === null) delete (existing as any).dueDate;
+              if ('priority' in updates && updates.priority === null) delete (existing as any).priority;
+              existing.updatedAt = nowSeconds();
             }
           })
         );
@@ -86,7 +93,9 @@ export const tasksApi = createApi({
         const patchById = dispatch(
           tasksApi.util.updateQueryData('getTaskById', id, (draft) => {
             Object.assign(draft, updates);
-            draft.updatedAt = new Date().toISOString();
+            if ('dueDate' in updates && updates.dueDate === null) delete (draft as any).dueDate;
+            if ('priority' in updates && updates.priority === null) delete (draft as any).priority;
+            draft.updatedAt = nowSeconds();
           })
         );
 

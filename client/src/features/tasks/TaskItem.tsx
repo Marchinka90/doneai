@@ -19,6 +19,7 @@ import { Task, TaskStatus } from '../../types';
 import { useDeleteTaskMutation, useUpdateTaskMutation } from '../../api/tasksApi';
 import { ConfirmDialog } from '../../components';
 import { useSnackbar } from '../../contexts';
+import { formatDateSeconds, formatNumber } from '../../utils/dates';
 
 interface TaskItemProps {
   task: Task;
@@ -73,14 +74,20 @@ const TaskItem = ({ task, onEdit }: TaskItemProps) => {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const created = useMemo(() => {
-    if (!task.createdAt) return null;
-    return new Date(task.createdAt).toLocaleDateString();
+    return formatDateSeconds(task.createdAt);
   }, [task.createdAt]);
 
   const updated = useMemo(() => {
-    if (!task.updatedAt) return null;
-    return new Date(task.updatedAt).toLocaleDateString();
+    return formatDateSeconds(task.updatedAt);
   }, [task.updatedAt]);
+
+  const due = useMemo(() => {
+    return formatDateSeconds(task.dueDate);
+  }, [task.dueDate]);
+
+  const priority = useMemo(() => {
+    return formatNumber(task.priority);
+  }, [task.priority]);
 
   const handleStatusChange = async (next: TaskStatus) => {
     try {
@@ -118,8 +125,18 @@ const TaskItem = ({ task, onEdit }: TaskItemProps) => {
             </Typography>
           ) : null}
 
-          {created || updated ? (
+          {priority || due || created || updated ? (
             <Box sx={{ mt: 2 }}>
+              {priority ? (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  Priority: {priority}
+                </Typography>
+              ) : null}
+              {due ? (
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                  Due: {due}
+                </Typography>
+              ) : null}
               {created ? (
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   Created: {created}

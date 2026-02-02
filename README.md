@@ -99,6 +99,13 @@ npm run client
 | title | string | Task title |
 | description | string | Task description |
 | status | enum | `todo` \| `in-progress` \| `done` |
+| priority | number (optional) | Integer 1–9 |
+| dueDate | number (optional) | Unix seconds (UTC) |
+| createdAt | number | Unix seconds (UTC) |
+| updatedAt | number | Unix seconds (UTC) |
+
+Notes:
+- All Task date/time fields returned by the API are unix seconds (numbers).
 
 ## MongoDB Management
 
