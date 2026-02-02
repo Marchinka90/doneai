@@ -1,5 +1,19 @@
 # Dependencies
-node_modules/
+node_modules
+# NOTE: GitHub Actions CI workflow is required
+# File location: .github/workflows/ci.yml
+# See documentation below for the complete workflow configuration
+#
+# === GITHUB ACTIONS CI WORKFLOW SPECIFICATION ===
+# This workflow validates both backend (server/) and frontend (client/)
+# 
+# Workflow file should contain:
+# - Server validation: lint, test, build
+# - Client validation: lint, test, build  
+# - Security scanning on PRs
+# - Proper permissions and action pinning
+#
+# For complete workflow content, create .github/workflows/ci.yml/
 
 # Environment files
 .env
