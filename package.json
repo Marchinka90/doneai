@@ -1,0 +1,19 @@
+{
+  "name": "doneai",
+  "version": "1.0.0",
+  "description": "DoneAI - Task Management Application",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "install:all": "npm install && cd server && npm install && cd ../client && npm install",
+    "build": "npm run build --prefix client && npm run build --prefix server"
+  },
+  "keywords": ["task-management", "express", "react", "typescript"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
