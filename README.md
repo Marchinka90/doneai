@@ -11,7 +11,8 @@ A task management application with an intuitive design supporting filtration and
 ## Prerequisites
 
 - Node.js (v18 or higher)
-- MongoDB (local installation)
+- Docker & Docker Compose (for MongoDB)
+- MongoDB (local installation or Docker)
 
 ## Setup
 
@@ -37,7 +38,7 @@ cd ../client && npm install
 ```env
 NODE_ENV=development
 PORT=5000
-MONGODB_URI=mongodb://localhost:27017/doneai
+MONGODB_URI=mongodb://admin:password123@localhost:27017/doneai?authSource=admin
 ```
 
 **Client** (`client/.env`):
@@ -45,9 +46,20 @@ MONGODB_URI=mongodb://localhost:27017/doneai
 VITE_API_URL=http://localhost:5000/api
 ```
 
-### 3. Start MongoDB
+### 3. Start MongoDB with Docker Compose
 
-Make sure MongoDB is running locally on port 27017.
+From the root directory:
+
+```bash
+# Start MongoDB container
+docker-compose up -d
+
+# Stop MongoDB container
+docker-compose down
+
+# Stop and remove volumes (WARNING: This will delete all data)
+docker-compose down -v
+```
 
 ### 4. Run the Application
 
@@ -87,6 +99,32 @@ npm run client
 | title | string | Task title |
 | description | string | Task description |
 | status | enum | `todo` \| `in-progress` \| `done` |
+
+## MongoDB Management
+
+### Docker Compose Commands
+
+```bash
+# Start MongoDB
+docker-compose up -d
+
+# View logs
+docker-compose logs mongodb
+
+# Access MongoDB shell
+docker exec -it doneai-mongodb mongosh -u admin -p password123 --authenticationDatabase admin
+
+# Stop MongoDB
+docker-compose down
+```
+
+### Database Access
+
+- **Host**: localhost
+- **Port**: 27017
+- **Database**: doneai
+- **Username**: admin
+- **Password**: password123
 
 ## Project Structure
 

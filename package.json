@@ -8,7 +8,10 @@
     "server": "npm run dev --prefix server",
     "client": "npm run dev --prefix client",
     "install:all": "npm install && cd server && npm install && cd ../client && npm install",
-    "build": "npm run build --prefix client && npm run build --prefix server"
+    "build": "npm run build --prefix client && npm run build --prefix server",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs mongodb"
   },
   "keywords": ["task-management", "express", "react", "typescript"],
   "author": "",
