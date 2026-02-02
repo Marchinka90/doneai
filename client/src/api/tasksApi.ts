@@ -31,6 +31,37 @@ export const tasksApi = createApi({
         method: 'POST',
         body: newTask,
       }),
+      async onQueryStarted(newTask, { dispatch, queryFulfilled }) {
+        // Optimistically add a temporary task to the list.
+        // If the request fails, undo. If it succeeds, replace temp with server task.
+        const tempId = `temp-${Date.now()}`;
+        const patchResult = dispatch(
+          tasksApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            draft.unshift({
+              id: tempId,
+              title: newTask.title,
+              description: newTask.description ?? '',
+              status: newTask.status ?? 'todo',
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            });
+          })
+        );
+
+        try {
+          const { data: created } = await queryFulfilled;
+          dispatch(
+            tasksApi.util.updateQueryData('getTasks', undefined, (draft) => {
+              const idx = draft.findIndex((t) => t.id === tempId);
+              if (idx !== -1) {
+                draft[idx] = created;
+              }
+            })
+          );
+        } catch {
+          patchResult.undo();
+        }
+      },
       invalidatesTags: [{ type: 'Task', id: 'LIST' }],
     }),
 
@@ -41,6 +72,38 @@ export const tasksApi = createApi({
         method: 'PUT',
         body: updates,
       }),
+      async onQueryStarted({ id, updates }, { dispatch, queryFulfilled }) {
+        const patchList = dispatch(
+          tasksApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            const existing = draft.find((t) => t.id === id);
+            if (existing) {
+              Object.assign(existing, updates);
+              existing.updatedAt = new Date().toISOString();
+            }
+          })
+        );
+
+        const patchById = dispatch(
+          tasksApi.util.updateQueryData('getTaskById', id, (draft) => {
+            Object.assign(draft, updates);
+            draft.updatedAt = new Date().toISOString();
+          })
+        );
+
+        try {
+          const { data: updated } = await queryFulfilled;
+          dispatch(
+            tasksApi.util.updateQueryData('getTasks', undefined, (draft) => {
+              const idx = draft.findIndex((t) => t.id === id);
+              if (idx !== -1) draft[idx] = updated;
+            })
+          );
+          dispatch(tasksApi.util.updateQueryData('getTaskById', id, (draft) => Object.assign(draft, updated)));
+        } catch {
+          patchList.undo();
+          patchById.undo();
+        }
+      },
       invalidatesTags: (_result, _error, { id }) => [
         { type: 'Task', id },
         { type: 'Task', id: 'LIST' },
@@ -53,6 +116,20 @@ export const tasksApi = createApi({
         url: `/tasks/${id}`,
         method: 'DELETE',
       }),
+      async onQueryStarted(id, { dispatch, queryFulfilled }) {
+        const patchList = dispatch(
+          tasksApi.util.updateQueryData('getTasks', undefined, (draft) => {
+            const idx = draft.findIndex((t) => t.id === id);
+            if (idx !== -1) draft.splice(idx, 1);
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          patchList.undo();
+        }
+      },
       invalidatesTags: (_result, _error, id) => [
         { type: 'Task', id },
         { type: 'Task', id: 'LIST' },
